@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>taobao</title>
+    <title>Document</title>
     <!-- 导入页面的基本样式 -->
     <link rel="stylesheet" href="./css/search.css" />
     <!-- 导入 jQuery -->
@@ -35,55 +35,60 @@
             <div id="suggest-list"></div>
         </div>
     </div>
-
     <!-- 模板结构 -->
     <script type="text/html" id="tpl-suggestList">
         {{each result}}
-        <!--搜索建议项-->
+        <!-- 搜索建议项 每循环一次 都能将内容打印出来-->
         <div class="suggest-item">{{$value[0]}}</div>
         {{/each}}
+
     </script>
 
     <script>
-        $(function() {
-            // 1. 定义延时器的Id
-            var timer = null
-                // 定义全局缓存对象
-            var cacheObj = {}
+        //1.定义延时器的id
+        let timer = null;
+        //0.1通过计时器，500ms后 再请求接口
+        let cacheObj = {}; //{'a':res1,'ab':res2}
+        $(() => {
 
-            // 2. 定义防抖的函数
-            function debounceSearch(kw) {
-                timer = setTimeout(function() {
-                    getSuggestList(kw)
-                }, 500)
+
+            function bound(kw) {
+                timer = setTimeout(() => {
+                    getSuggestList(kw);
+                }, 500);
             }
 
-            // 为输入框绑定 keyup 事件
+            // 1.文本框的 键盘事件
             $('#ipt').on('keyup', function() {
-                // 3. 清空 timer
+                //0.立即关闭上次的计时器
                 clearTimeout(timer)
-                var keywords = $(this).val().trim()
-                if (keywords.length <= 0) {
-                    return $('#suggest-list').empty().hide()
-                }
+                    //尝试缓存中 获取数据
+                let resC = cacheObj[this.value.trim()]; //根据用户输入的值 去对象中 获取 同名属性的属性值 
+                if (resC) return genderList(resC);
 
-                // 先判断缓存中是否有数据
-                if (cacheObj[keywords]) {
-                    return renderSuggestList(cacheObj[keywords])
-                }
 
-                // TODO:获取搜索建议列表
-                // console.log(keywords)
-                // getSuggestList(keywords)
-                debounceSearch(keywords)
+
+                //1.开启定时器：根据关键字 去淘宝 接口查询建议列表数据
+                bound(this.value.trim())
+                    // console.log(this.value);
+                    // let keywords = $(this).val().trim()
+                    // if (keywords.length <= 0) {
+                    //     return $('#suggest-list').empty().hide()
+                    // }
+                    // //
+                    // console.log(keywords);
+                    // getSuggestList(keywords)
             })
 
+
+            //异步请求函数
             function getSuggestList(kw) {
                 $.ajax({
                     url: 'https://suggest.taobao.com/sug?q=' + kw,
+                    // method:'get',
                     dataType: 'jsonp',
                     success: function(res) {
-                        // console.log(res)
+                        console.log(res);
                         renderSuggestList(res)
                     }
                 })
@@ -94,14 +99,15 @@
                 if (res.result.length <= 0) {
                     return $('#suggest-list').empty().hide()
                 }
-                var htmlStr = template('tpl-suggestList', res)
-
-                $('#suggest-list').html(htmlStr).show()
-
-                // 1. 获取到用户输入的内容，当做键
-                var k = $('#ipt').val().trim()
-                    // 2. 需要将数据作为值，进行缓存
-                cacheObj[k] = res
+                let htmlStr = template('tpl-suggestList', res)
+                console.log(htmlStr);
+                $('#suggest-list').html(htmlStr).show();
+                //当数据列表 不为空时 则缓存数据------
+                //缓存的目的减少查询
+                let kw = $('#ipt').val().trim();
+                cacheObj[kw] = res;
+                console.log('-----添加缓存---');
+                console.log(cacheObj);
             }
         })
     </script>
